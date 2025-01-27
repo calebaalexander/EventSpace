@@ -1,6 +1,5 @@
 import streamlit as st
 import pandas as pd
-import plotly.express as px
 import plotly.graph_objects as go
 import requests
 from datetime import datetime, timedelta
@@ -68,36 +67,22 @@ def get_historical_weather(date_str, location="New York"):
         st.error(f"Error fetching weather data: {e}")
         return None
 
-# Function to generate sample historical weather data
-def generate_sample_weather_data(event_date):
-    """Generate sample weather data for demonstration"""
-    dates = pd.date_range(end=event_date, periods=30, freq='D')
-    base_temp = 65
-    temp_variation = 5
-    
-    data = {
-        'Date': dates,
-        'Temperature': [base_temp + random.uniform(-temp_variation, temp_variation) for _ in range(30)],
-        'Precipitation': [random.uniform(0, 100) for _ in range(30)]
-    }
-    return pd.DataFrame(data)
-
 # Function to create weather trend visualization
-def create_weather_trend_plot(weather_data):
+def create_weather_trend_plot(dates, temperatures, precipitation):
     fig = go.Figure()
     
     # Add temperature line
     fig.add_trace(go.Scatter(
-        x=weather_data['Date'],
-        y=weather_data['Temperature'],
+        x=dates,
+        y=temperatures,
         name='Temperature (°F)',
         line=dict(color='#FF9900', width=2)
     ))
     
     # Add precipitation line
     fig.add_trace(go.Scatter(
-        x=weather_data['Date'],
-        y=weather_data['Precipitation'],
+        x=dates,
+        y=precipitation,
         name='Precipitation (%)',
         line=dict(color='#00BFFF', width=2),
         yaxis='y2'
@@ -193,9 +178,13 @@ def main():
                 st.metric("Typical Humidity", "45%")
         
         with col2:
-            # Generate and display weather trend
-            weather_df = generate_sample_weather_data(event_date)
-            fig = create_weather_trend_plot(weather_df)
+            # Generate sample data for visualization
+            dates = pd.date_range(end=event_date, periods=30, freq='D')
+            temperatures = [65 + random.uniform(-5, 5) for _ in range(30)]
+            precipitation = [random.uniform(0, 100) for _ in range(30)]
+            
+            # Create and display weather trend
+            fig = create_weather_trend_plot(dates, temperatures, precipitation)
             st.plotly_chart(fig, use_container_width=True)
         
         # Event Summary
