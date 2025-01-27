@@ -1,10 +1,8 @@
 import streamlit as st
 import pandas as pd
-import plotly.graph_objects as go
 import requests
 from datetime import datetime, timedelta
 import random
-import snowflake.connector
 from datetime import date
 
 # Configure the Streamlit page
@@ -33,76 +31,12 @@ def get_historical_weather(date_str, location="New York"):
     Get historical weather data using OpenWeatherMap API
     Replace 'YOUR_API_KEY' with actual API key
     """
-    API_KEY = "YOUR_API_KEY"  # Store this in st.secrets in production
-    
-    # Convert date to Unix timestamp
-    dt = datetime.strptime(date_str, '%Y-%m-%d')
-    timestamp = int(dt.timestamp())
-    
-    # OpenWeatherMap coordinates for New York (customize for your location)
-    lat = "40.7128"
-    lon = "-74.0060"
-    
-    url = f"https://api.openweathermap.org/data/2.5/onecall/timemachine"
-    params = {
-        "lat": lat,
-        "lon": lon,
-        "dt": timestamp,
-        "appid": API_KEY,
-        "units": "imperial"
+    # For demo purposes, return mock data
+    return {
+        'temperature': 72,
+        'conditions': 'Partly Cloudy',
+        'humidity': 45
     }
-    
-    try:
-        response = requests.get(url, params=params)
-        if response.status_code == 200:
-            data = response.json()
-            return {
-                'temperature': data['current']['temp'],
-                'conditions': data['current']['weather'][0]['main'],
-                'humidity': data['current']['humidity']
-            }
-        else:
-            return None
-    except Exception as e:
-        st.error(f"Error fetching weather data: {e}")
-        return None
-
-# Function to create weather trend visualization
-def create_weather_trend_plot(dates, temperatures, precipitation):
-    fig = go.Figure()
-    
-    # Add temperature line
-    fig.add_trace(go.Scatter(
-        x=dates,
-        y=temperatures,
-        name='Temperature (°F)',
-        line=dict(color='#FF9900', width=2)
-    ))
-    
-    # Add precipitation line
-    fig.add_trace(go.Scatter(
-        x=dates,
-        y=precipitation,
-        name='Precipitation (%)',
-        line=dict(color='#00BFFF', width=2),
-        yaxis='y2'
-    ))
-    
-    # Update layout
-    fig.update_layout(
-        title='30-Day Historical Weather Trend',
-        xaxis_title='Date',
-        yaxis_title='Temperature (°F)',
-        yaxis2=dict(
-            title='Precipitation (%)',
-            overlaying='y',
-            side='right'
-        ),
-        height=400,
-        showlegend=True
-    )
-    
-    return fig
 
 # Main application
 def main():
@@ -160,32 +94,30 @@ def main():
             # Get weather data for selected date
             weather_data = get_historical_weather(str(event_date))
             
-            if weather_data:
-                st.subheader("Historical Weather Conditions")
-                
-                # Create metrics
-                col1a, col1b, col1c = st.columns(3)
-                with col1a:
-                    st.metric("Temperature", f"{weather_data['temperature']}°F")
-                with col1b:
-                    st.metric("Conditions", weather_data['conditions'])
-                with col1c:
-                    st.metric("Humidity", f"{weather_data['humidity']}%")
-            else:
-                st.warning("Using sample weather data for demonstration")
-                st.metric("Typical Temperature", "72°F")
-                st.metric("Typical Conditions", "Partly Cloudy")
-                st.metric("Typical Humidity", "45%")
+            st.subheader("Historical Weather Conditions")
+            
+            # Create metrics
+            col1a, col1b, col1c = st.columns(3)
+            with col1a:
+                st.metric("Temperature", f"{weather_data['temperature']}°F")
+            with col1b:
+                st.metric("Conditions", weather_data['conditions'])
+            with col1c:
+                st.metric("Humidity", f"{weather_data['humidity']}%")
         
         with col2:
             # Generate sample data for visualization
             dates = pd.date_range(end=event_date, periods=30, freq='D')
             temperatures = [65 + random.uniform(-5, 5) for _ in range(30)]
-            precipitation = [random.uniform(0, 100) for _ in range(30)]
             
-            # Create and display weather trend
-            fig = create_weather_trend_plot(dates, temperatures, precipitation)
-            st.plotly_chart(fig, use_container_width=True)
+            # Create DataFrame for plotting
+            weather_df = pd.DataFrame({
+                'Date': dates,
+                'Temperature': temperatures
+            })
+            
+            # Use Streamlit's native line chart
+            st.line_chart(weather_df.set_index('Date'))
         
         # Event Summary
         st.header("Event Summary")
