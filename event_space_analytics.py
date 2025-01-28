@@ -3,6 +3,8 @@ import pandas as pd
 import requests
 from datetime import datetime, timedelta, date
 import json
+from dateutil.relativedelta import relativedelta
+import calendar
 
 # Configure the Streamlit page
 st.set_page_config(
@@ -11,7 +13,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# Add custom CSS
+# Add custom CSS with better styling
 st.markdown("""
     <style>
     .main {
@@ -28,27 +30,36 @@ st.markdown("""
         margin: 1rem 0;
         border: 1px solid #dee2e6;
     }
-    .metric-card {
-        text-align: center;
+    .timeline-card {
         padding: 1rem;
-        background: white;
         border-radius: 0.5rem;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        background: #fff5f7;
+        margin: 0.5rem 0;
+        border: 1px solid #ffb6c1;
+    }
+    .timeline-month {
+        font-size: 1.2rem;
+        font-weight: bold;
+        color: #ff69b4;
+        margin-bottom: 0.5rem;
+    }
+    .timeline-task {
+        padding: 0.5rem;
+        margin: 0.25rem 0;
+        background: white;
+        border-radius: 0.25rem;
     }
     </style>
     """, unsafe_allow_html=True)
 
 def get_weather_data(location, date_str, api_key):
-    """
-    Get weather data using Visual Crossing API
-    """
+    """Get weather data using Visual Crossing API"""
     try:
-        # Format the API URL
         base_url = "https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline"
         url = f"{base_url}/{location}/{date_str}"
         
         params = {
-            "unitGroup": "us",  # US units
+            "unitGroup": "us",
             "key": api_key,
             "contentType": "json",
             "include": "days"
@@ -66,122 +77,106 @@ def get_weather_data(location, date_str, api_key):
         st.error(f"Error parsing weather response: {str(e)}")
         return None
 
-def celsius_to_fahrenheit(celsius):
-    """Convert celsius to fahrenheit"""
-    return (celsius * 9/5) + 32
-
-def get_weather_icon(condition):
-    """Map weather conditions to emojis"""
-    condition = condition.lower()
-    icons = {
-        'clear': '☀️',
-        'sunny': '☀️',
-        'partly cloudy': '⛅',
-        'cloudy': '☁️',
-        'rain': '🌧️',
-        'snow': '🌨️',
-        'thunderstorm': '⛈️',
-        'fog': '🌫️',
-        'wind': '💨'
+def generate_timeline(client_name, wedding_date):
+    """Generate wedding planning timeline"""
+    today = date.today()
+    wedding = datetime.strptime(wedding_date, '%Y-%m-%d').date()
+    months_until_wedding = (wedding.year - today.year) * 12 + wedding.month - today.month
+    
+    timeline_tasks = {
+        12: [
+            "Have conversation with wedding stakeholders",
+            "Set your wedding budget",
+            "Research and tour venues",
+            "Begin pulling style inspiration"
+        ],
+        11: [
+            "Touch base with priority vendors",
+            "Finalize your date and venue",
+            "Start booking key vendors",
+            "Determine your wedding party"
+        ],
+        10: [
+            "Start shopping for wedding attire",
+            "Book hotel room blocks",
+            "Research transportation options"
+        ],
+        9: [
+            "Choose save-the-dates",
+            "Plan your entertainment",
+            "Begin booking rentals",
+            "Schedule engagement photos"
+        ],
+        8: [
+            "Create wedding website",
+            "Send save-the-dates",
+            "Start registry process",
+            "Research honeymoon destinations"
+        ],
+        7: [
+            "Shop for wedding party attire",
+            "Finalize vendor contracts",
+            "Book rehearsal dinner venue"
+        ],
+        6: [
+            "Begin premarital counseling",
+            "Shop for wedding bands",
+            "Book hair and makeup team",
+            "Complete invitation suite"
+        ],
+        5: [
+            "Order invitations",
+            "Plan your menu",
+            "Buy additional outfits",
+            "Finalize honeymoon plans"
+        ],
+        4: [
+            "Send shower invites",
+            "Create music wishlist",
+            "Plan personalized details",
+            "Finalize ceremony program"
+        ],
+        3: [
+            "Attend wedding shower",
+            "Purchase thank you gifts",
+            "Schedule hair/makeup trial",
+            "Send formal invitations"
+        ],
+        2: [
+            "Enjoy bachelor/bachelorette party",
+            "Start writing vows",
+            "Plan favors and welcome bags"
+        ],
+        1: [
+            "Apply for marriage license",
+            "Final dress fittings",
+            "Create seating chart",
+            "Final vendor meetings"
+        ],
+        0: [
+            "Rehearsal dinner",
+            "Welcome party",
+            "The Big Day!",
+            "Begin your happily ever after"
+        ]
     }
     
-    for key in icons:
-        if key in condition:
-            return icons[key]
-    return '🌤️'  # default icon
-
-def display_weather_analysis(weather_data, event_date):
-    """Enhanced weather analysis display"""
-    if weather_data and 'days' in weather_data and len(weather_data['days']) > 0:
-        day_data = weather_data['days'][0]
-        
-        st.subheader("📊 Weather Forecast Analysis")
-        
-        # Create three columns for weather metrics
-        col1, col2, col3, col4 = st.columns(4)
-        
-        with col1:
-            st.metric(
-                "Temperature",
-                f"{day_data['temp']}°F",
-                delta=f"Feels like {day_data['feelslike']}°F"
-            )
-            
-        with col2:
-            st.metric(
-                "Humidity",
-                f"{day_data['humidity']}%",
-                delta=None
-            )
-            
-        with col3:
-            st.metric(
-                "Precipitation",
-                f"{day_data['precip']} in",
-                delta=f"{day_data['precipprob']}% chance" if 'precipprob' in day_data else None
-            )
-            
-        with col4:
-            st.metric(
-                "Wind",
-                f"{day_data['windspeed']} mph",
-                delta=f"Gusts {day_data['windgust']} mph" if 'windgust' in day_data else None
-            )
-        
-        # Weather condition card
-        icon = get_weather_icon(day_data['conditions'])
-        st.markdown(
-            f"""
-            <div class="weather-card">
-                <h3 style="margin-bottom:1rem;">{icon} Weather Conditions</h3>
-                <p style="font-size:1.1em;">{day_data['conditions']}</p>
-                <p>Description: {day_data['description']}</p>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-        
-        # Add weather recommendations
-        st.subheader("🎯 Event Planning Recommendations")
-        recommendations = generate_weather_recommendations(day_data)
-        for rec in recommendations:
-            st.write(f"• {rec}")
-            
-        # Historical comparison if available
-        if 'historical' in weather_data:
-            st.subheader("📈 Historical Comparison")
-            # Add historical analysis here
-            
-    else:
-        st.warning("Weather data not available for the selected date.")
-
-def generate_weather_recommendations(weather_data):
-    """Generate event planning recommendations based on weather"""
-    recommendations = []
+    st.header("📅 Your Custom Wedding Timeline", divider=True)
+    st.write(f"Planning timeline for {client_name}'s wedding on {wedding_date}")
     
-    # Temperature recommendations
-    if weather_data['temp'] < 50:
-        recommendations.append("Consider providing outdoor heaters or moving indoors")
-        recommendations.append("Prepare warm beverages for guests")
-    elif weather_data['temp'] > 85:
-        recommendations.append("Ensure adequate shade and cooling options")
-        recommendations.append("Provide plenty of water and cold beverages")
+    # Generate monthly timeline
+    for i in range(min(13, months_until_wedding + 1)):
+        month_date = wedding - relativedelta(months=i)
+        month_name = month_date.strftime("%B %Y")
         
-    # Precipitation recommendations
-    if weather_data['precipprob'] > 30:
-        recommendations.append("Have a backup indoor location or tent arrangement")
-        recommendations.append("Consider providing umbrellas or covered walkways")
-        
-    # Wind recommendations
-    if weather_data['windspeed'] > 15:
-        recommendations.append("Secure all decorations and lightweight furniture")
-        recommendations.append("Consider wind barriers for outdoor areas")
-        
-    # Humidity recommendations
-    if weather_data['humidity'] > 70:
-        recommendations.append("Consider providing fans or dehumidifiers for comfort")
-    
-    return recommendations
+        with st.expander(f"{i} Months Out - {month_name}"):
+            tasks = timeline_tasks.get(i, [])
+            for task in tasks:
+                col1, col2 = st.columns([0.1, 0.9])
+                with col1:
+                    st.checkbox("", key=f"{i}-{task}")
+                with col2:
+                    st.write(task)
 
 def main():
     st.title("📈 Event Space Analytics Dashboard")
@@ -190,66 +185,70 @@ def main():
     with st.sidebar:
         st.subheader("Configuration")
         api_key = st.text_input("Visual Crossing API Key", 
-                               value="KRLYNZU9RASBDGAB3688F8WPL",  # Default key from example
+                               value="KRLYNZU9RASBDGAB3688F8WPL",
                                type="password")
         location = st.text_input("Default Location (ZIP or City)", 
-                               value="12051")  # Default location from example
+                               value="12051")
     
-    # Create main form
-    with st.form("event_form"):
-        st.subheader("Event Details")
-        
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            client_name = st.text_input("Client Name")
-            event_date = st.date_input(
-                "Event Date",
-                min_value=date.today(),
-                value=date.today() + timedelta(days=30)
-            )
-            event_type = st.selectbox(
-                "Event Type",
-                options=["Wedding", "Corporate Event", "Birthday", "Conference", "Other"]
-            )
-        
-        with col2:
-            total_cost = st.number_input(
-                "Total Cost ($)",
-                min_value=0.0,
-                step=100.0,
-                format="%.2f"
-            )
-            attendance = st.number_input(
-                "Expected Attendance",
-                min_value=1,
-                step=1
-            )
-            venue_location = st.selectbox(
-                "Venue Location",
-                options=["Indoor", "Outdoor", "Both"]
-            )
-        
-        caterer = st.text_input("Caterer/Vendor Name")
-        
-        submit_button = st.form_submit_button("Submit Event Details")
+    # Create tabs for different sections
+    tab1, tab2 = st.tabs(["Event Details", "Wedding Timeline"])
     
-    if submit_button:
-        if not api_key:
-            st.error("Please enter your Visual Crossing API key in the sidebar.")
-            return
+    with tab1:
+        # Create main form
+        with st.form("event_form"):
+            st.subheader("Event Details")
             
-        # Show success message
-        st.success("Event details submitted successfully!")
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                client_name = st.text_input("Client Name")
+                event_date = st.date_input(
+                    "Event Date",
+                    min_value=date.today(),
+                    value=date.today() + timedelta(days=30)
+                )
+                event_type = st.selectbox(
+                    "Event Type",
+                    options=["Wedding", "Corporate Event", "Birthday", "Conference", "Other"]
+                )
+            
+            with col2:
+                total_cost = st.number_input(
+                    "Total Cost ($)",
+                    min_value=0.0,
+                    step=100.0,
+                    format="%.2f"
+                )
+                attendance = st.number_input(
+                    "Expected Attendance",
+                    min_value=1,
+                    step=1
+                )
+                venue_location = st.selectbox(
+                    "Venue Location",
+                    options=["Indoor", "Outdoor", "Both"]
+                )
+            
+            caterer = st.text_input("Caterer/Vendor Name")
+            
+            submit_button = st.form_submit_button("Submit Event Details")
         
-        # Get weather data
-        with st.spinner("Fetching weather data..."):
-            date_str = event_date.strftime("%Y-%m-%d")
-            weather_data = get_weather_data(location, date_str, api_key)
-        
-        if weather_data:
-            # Display weather analysis
-            display_weather_analysis(weather_data, event_date)
+        if submit_button:
+            if not api_key:
+                st.error("Please enter your Visual Crossing API key in the sidebar.")
+                return
+                
+            # Show success message
+            st.success("Event details submitted successfully!")
+            
+            # Get weather data
+            with st.spinner("Fetching weather data..."):
+                date_str = event_date.strftime("%Y-%m-%d")
+                weather_data = get_weather_data(location, date_str, api_key)
+            
+            if weather_data and event_type == "Wedding":
+                # Generate timeline
+                generate_timeline(client_name, date_str)
             
             # Display event summary
             st.header("📋 Event Summary")
@@ -266,6 +265,25 @@ def main():
                 st.write(f"**Expected Attendance:** {attendance}")
                 st.write(f"**Caterer:** {caterer}")
                 st.write(f"**Location:** {weather_data.get('resolvedAddress', location)}")
+    
+    with tab2:
+        st.header("Wedding Planning Timeline Generator")
+        timeline_col1, timeline_col2 = st.columns(2)
+        
+        with timeline_col1:
+            timeline_name = st.text_input("Enter Your Name")
+        with timeline_col2:
+            timeline_date = st.date_input(
+                "Select Wedding Date",
+                min_value=date.today(),
+                value=date.today() + timedelta(days=365)
+            )
+        
+        if st.button("Generate Timeline"):
+            if timeline_name and timeline_date:
+                generate_timeline(timeline_name, timeline_date.strftime("%Y-%m-%d"))
+            else:
+                st.warning("Please enter your name and wedding date to generate a timeline.")
 
 if __name__ == "__main__":
     main()
