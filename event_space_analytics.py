@@ -107,16 +107,14 @@ def display_weather_analysis(weather_data):
                 delta=None
             )
         
-        # Weather condition card
+        # Weather condition card - simplified version without description
         conditions = day_data.get('conditions', 'No conditions available')
-        description = day_data.get('description', conditions)
         
         st.markdown(
             f"""
             <div class="weather-card">
                 <h3>☁️ Weather Conditions</h3>
                 <p>{conditions}</p>
-                <p><strong>Description:</strong> {description}</p>
             </div>
             """,
             unsafe_allow_html=True
