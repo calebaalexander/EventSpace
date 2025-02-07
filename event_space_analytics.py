@@ -5,14 +5,14 @@ from datetime import datetime, timedelta, date
 import json
 from dateutil.relativedelta import relativedelta
 
-Configure the Streamlit page
+# Configure the Streamlit page
 st.set_page_config(
     page_title="Event Space Analytics",
     page_icon="🎉",
     layout="wide"
 )
 
-Add custom CSS
+# Add custom CSS
 st.markdown("""
     <style>
     .main {
